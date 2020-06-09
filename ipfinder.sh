@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 
 # Sometimes, when there is no Internet connection, curl will continue to retry. If the total time is longer than MAX_TIME we want to abort.
-declare -r MAX_TIME=5 # seconds
+declare -r MAX_TIME=10 # seconds
+# The time we want to wait before we check for any network changes.
+before_network_check=2 # seconds
+last_network_change=0 # seconds
+
+DEFAULT_CHECK_ANYWAY=10 #seconds
+check_anyway=$DEFAULT_CHECK_ANYWAY # seconds
 
 # In case we get throttled anyway, we try with a different service.
 throttled() {
@@ -10,7 +16,7 @@ throttled() {
     country=$(echo "$response" | jq -r '.country_iso' 2>/dev/null)
 
     if  [ -z "$ip" ] || echo "$ip" | grep -iq null; then
-	
+
 	return 1
     fi
 
@@ -21,7 +27,7 @@ connected() {
     if ! route | grep '^default' | grep -qo '[^ ]*$'; then
 	echo 1; return 1; 
     fi
-    
+
     echo 0;
 }
 
@@ -42,8 +48,19 @@ while :; do
     current_uplinks=$(uplinks)
     current_connection_status=$(connected)
     if [ "$current_interface_state" = "$previous_interface_state" ] &&  [ "$current_uplinks" = "$previous_uplinks" ] && [ "$current_connection_status" = "$previous_connection_status" ]; then
-	sleep 2; continue
+	sleep $before_network_check
+	last_network_change=$((last_network_change + before_network_check))
+	if [ "$last_network_change" -le "$check_anyway" ]; then
+	    continue;
+	else
+	    check_anyway=$((check_anyway + 2 * (RANDOM % 10)))
+
+	fi
+    else
+	check_anyway=$DEFAULT_CHECK_ANYWAY
     fi
+
+    last_network_change=0
 
     status=""
     # If a VPN connection is established, a tunnel is created.
@@ -64,14 +81,14 @@ while :; do
 	    default_interface=$(ip route | awk '/^default/ { print $5 ; exit }')
 	    # If there is no default interface, Internet is down.
 	    if [ -z "$default_interface" ]; then
-		
+
 		status=""
 		ip="127.0.0.1"
 	    else
 
 		ip=$(ip addr show "$default_interface" | awk '/scope global/ {print $2; exit}' | cut -d/ -f1)
 	    fi
-	    
+
 	    country="local"
 	fi
     fi
