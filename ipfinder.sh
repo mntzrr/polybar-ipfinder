@@ -8,66 +8,78 @@ throttled() {
     response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ifconfig.co/json)
     ip=$(echo "$response" | jq -r '.ip' 2>/dev/null)
     country=$(echo "$response" | jq -r '.country_iso' 2>/dev/null)
-    
-    if [ -z "$ip" ] || echo "$ip" | grep -iq null; then
-        
-        return 1
+
+    if  [ -z "$ip" ] || echo "$ip" | grep -iq null; then
+	
+	return 1
     fi
-    
+
     return 0
 }
 
 connected() {
     if ! route | grep '^default' | grep -qo '[^ ]*$'; then
-        echo 1
-        return 1
+	echo 1; return 1; 
     fi
     
-    echo 0
+    echo 0;
+}
+
+# If a change happens to quickly and the resulting list of states is similar, no change will be detected. Therefore, this check only, of interface states, won't suffice. Alternatively, we may want we check the entire output of `ip link show up` instead.
+interface_state() {
+    ip link show up | grep -oE 'state (UP|DOWN|UNKNOWN)' | awk '{print $2}' | tr '[:space:]' ' '
+}
+
+# Each time a tunnel is created, it is given a unique id. If this instantiation happens too quickly and results in the same state as previously, interface_state won't mark any changes. Uplinks checks all the interfaces numbers.
+uplinks() {
+    ip link show up | awk -F: '/^[0-9]+/ {print $1}'
 }
 
 while :; do
-    
+
     # We do not want to exceed the limit of API requests, so we check if there is actually any changes.
-    network_changed="$(ip link show up)"
-    if [ "$network_changed" = "$current_network" ] && [ "$connection_status" = "$(connected)" ]; then
-        sleep 2
-        continue
+    current_interface_state="$(interface_state)"
+    current_uplinks=$(uplinks)
+    current_connection_status=$(connected)
+    if [ "$current_interface_state" = "$previous_interface_state" ] &&  [ "$current_uplinks" = "$previous_uplinks" ] && [ "$current_connection_status" = "$previous_connection_status" ]; then
+	sleep 2; continue
     fi
-    
+
     status=""
     # If a VPN connection is established, a tunnel is created.
     if [ -n "$(ip tuntap)" ]; then
-        
-        status=""
+
+	status=""
     fi
-    
-    response=$(curl -m "$MAX_TIME" -s -H "Accept: application/json" ipinfo.io/json)
+
+    response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ipinfo.io/json)
     if [ -n "$response" ] && ! echo "$response" | jq -r '.ip' | grep -iq null; then
-        
-        ip=$(echo "$response" | jq -r '.ip')
-        country=$(echo "$response" | jq -r '.country')
+
+	ip=$(echo "$response" | jq -r '.ip')
+	country=$(echo "$response" | jq -r '.country')
     else
-        
-        if ! throttled; then
-            
-            default_interface=$(ip route | awk '/^default/ { print $5 ; exit }')
-            # If there is no default interface, Internet is down.
-            if [ -z "$default_interface" ]; then
-                
-                status=""
-                ip="127.0.0.1"
-            else
-                
-                ip=$(ip addr show "$default_interface" | awk '/scope global/ {print $2; exit}' | cut -d/ -f1)
-            fi
-            
-            country="local"
-        fi
+
+	if ! throttled; then
+
+	    default_interface=$(ip route | awk '/^default/ { print $5 ; exit }')
+	    # If there is no default interface, Internet is down.
+	    if [ -z "$default_interface" ]; then
+		
+		status=""
+		ip="127.0.0.1"
+	    else
+
+		ip=$(ip addr show "$default_interface" | awk '/scope global/ {print $2; exit}' | cut -d/ -f1)
+	    fi
+	    
+	    country="local"
+	fi
     fi
-    
+
     echo "$status $ip [$country]"
-    current_network="$(ip link show up)"
-    connection_status=$(connected)
-    
+    previous_interface_state="$(interface_state)"
+    previous_uplinks=$(uplinks)
+    previous_connection_status=$(connected)
+
+
 done
