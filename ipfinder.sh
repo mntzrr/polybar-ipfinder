@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 # Sometimes, when there is no Internet connection, curl will continue to retry. If the total time is longer than MAX_TIME we want to abort.
-declare -r MAX_TIME=10 # seconds
+MAX_TIME=10 # seconds
 # The time we want to wait before we check for any network changes.
 before_network_check=2 # seconds
 last_network_change=0 # seconds
