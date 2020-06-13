@@ -34,12 +34,6 @@ font-3 = Font Awesome 5 Brands:pixelsize=9; 2
 font-4 = Font Awesome 5 Free:style=Solid:pixelsize=7; 2
 ```
 
-Alternatively, you can use your own custom font icons by modifying the script at:
-
-* line 34 (VPN down), 
-* line 38 (VPN up) and 
-* line 56 (No Internet connection.)
-
 ## Module
 
 ```ini

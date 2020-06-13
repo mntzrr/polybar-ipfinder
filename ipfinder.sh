@@ -9,6 +9,11 @@ last_network_change=0 # seconds
 DEFAULT_CHECK_ANYWAY=10 #seconds
 check_anyway=$DEFAULT_CHECK_ANYWAY # seconds
 
+# Icons
+VPN_UP=""
+VPN_DOWN=""
+INTERNET_DOWN=""
+
 # In case we get throttled anyway, we try with a different service.
 throttled() {
     response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ifconfig.co/json)
@@ -62,11 +67,11 @@ while :; do
 
     last_network_change=0
 
-    status=""
+    status=$VPN_DOWN
     # If a VPN connection is established, a tunnel is created.
     if [ -n "$(ip tuntap)" ]; then
 
-	status=""
+	status=$VPN_UP
     fi
 
     response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ipinfo.io/json)
@@ -82,7 +87,7 @@ while :; do
 	    # If there is no default interface, Internet is down.
 	    if [ -z "$default_interface" ]; then
 
-		status=""
+		status=$INTERNET_DOWN
 		ip="127.0.0.1"
 	    else
 
