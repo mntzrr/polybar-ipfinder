@@ -97,7 +97,7 @@ while :; do
 	fi
     fi
 
-    echo "$status $ip [$country]"
+    printf "%-26s\n" "$(echo $status $ip [$country])"
     previous_interface_state="$(interface_state)"
     previous_uplinks=$(uplinks)
     previous_connection_status=$(connected)
