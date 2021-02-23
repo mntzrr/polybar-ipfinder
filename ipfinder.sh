@@ -6,7 +6,7 @@ MAX_TIME=10 # seconds
 before_network_check=2 # seconds
 last_network_change=0 # seconds
 
-DEFAULT_CHECK_ANYWAY=10 #seconds
+DEFAULT_CHECK_ANYWAY=10 # seconds
 check_anyway=$DEFAULT_CHECK_ANYWAY # seconds
 
 # Icons
@@ -14,15 +14,14 @@ VPN_UP=""
 VPN_DOWN=""
 INTERNET_DOWN=""
 
-# In case we get throttled anyway, we try with a different service.
+# In case we get throttled anyway, try with a different service.
 throttled() {
     response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ifconfig.co/json)
     ip=$(echo "$response" | jq -r '.ip' 2>/dev/null)
     country=$(echo "$response" | jq -r '.country_iso' 2>/dev/null)
 
     if  [ -z "$ip" ] || echo "$ip" | grep -iq null; then
-
-	return 1
+        return 1
     fi
 
     return 0
@@ -30,7 +29,8 @@ throttled() {
 
 connected() {
     if ! ip route | grep '^default' | grep -qo '[^ ]*$'; then
-	echo 1; return 1; 
+        echo 1; 
+        return 1; 
     fi
 
     echo 0;
@@ -53,16 +53,16 @@ while :; do
     current_uplinks=$(uplinks)
     current_connection_status=$(connected)
     if [ "$current_interface_state" = "$previous_interface_state" ] &&  [ "$current_uplinks" = "$previous_uplinks" ] && [ "$current_connection_status" = "$previous_connection_status" ]; then
-	sleep $before_network_check
-	last_network_change=$((last_network_change + before_network_check))
-	if [ "$last_network_change" -le "$check_anyway" ]; then
-	    continue;
-	else
-	    check_anyway=$((check_anyway + 2 * (RANDOM % 10)))
+        sleep $before_network_check
+        last_network_change=$((last_network_change + before_network_check))
+        if [ "$last_network_change" -le "$check_anyway" ]; then
+            continue;
+        else
+            check_anyway=$((check_anyway + 2 * (RANDOM % 10)))
 
-	fi
+        fi
     else
-	check_anyway=$DEFAULT_CHECK_ANYWAY
+        check_anyway=$DEFAULT_CHECK_ANYWAY
     fi
 
     last_network_change=0
@@ -70,37 +70,35 @@ while :; do
     status=$VPN_DOWN
     # If a VPN connection is established, a tunnel is created.
     if ip tuntap | grep -iEq '(tun[0-9]+|nordlynx)'; then
-	status=$VPN_UP
+        status=$VPN_UP
     fi
 
     response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ipinfo.io/json)
     if [ -n "$response" ] && ! echo "$response" | jq -r '.ip' | grep -iq null; then
 
-	ip=$(echo "$response" | jq -r '.ip')
-	country=$(echo "$response" | jq -r '.country')
+        ip=$(echo "$response" | jq -r '.ip')
+        country=$(echo "$response" | jq -r '.country')
     else
 
-	if ! throttled; then
+        if ! throttled; then
 
-	    default_interface=$(ip route | awk '/^default/ { print $5 ; exit }')
-	    # If there is no default interface, Internet is down.
-	    if [ -z "$default_interface" ]; then
+            default_interface=$(ip route | awk '/^default/ { print $5 ; exit }')
+            # If there is no default interface, Internet is down.
+            if [ -z "$default_interface" ]; then
 
-		status=$INTERNET_DOWN
-		ip="127.0.0.1"
-	    else
+                status=$INTERNET_DOWN
+                ip="127.0.0.1"
+            else
 
-		ip=$(ip addr show "$default_interface" | awk '/scope global/ {print $2; exit}' | cut -d/ -f1)
-	    fi
+                ip=$(ip addr show "$default_interface" | awk '/scope global/ {print $2; exit}' | cut -d/ -f1)
+            fi
 
-	    country="local"
-	fi
+            country="local"
+        fi
     fi
 
     printf "%-26s\n" "$(echo $status $ip [$country])"
     previous_interface_state="$(interface_state)"
     previous_uplinks=$(uplinks)
     previous_connection_status=$(connected)
-
-
 done
