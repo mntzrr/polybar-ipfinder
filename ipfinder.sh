@@ -69,8 +69,7 @@ while :; do
 
     status=$VPN_DOWN
     # If a VPN connection is established, a tunnel is created.
-    if ip tuntap | grep -iEq 'tun[0-9]+'; then
-
+    if ip tuntap | grep -iEq '(tun[0-9]+|nordlynx)'; then
 	status=$VPN_UP
     fi
 
