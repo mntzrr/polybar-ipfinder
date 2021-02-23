@@ -29,7 +29,7 @@ throttled() {
 }
 
 connected() {
-    if ! route | grep '^default' | grep -qo '[^ ]*$'; then
+    if ! ip route | grep '^default' | grep -qo '[^ ]*$'; then
 	echo 1; return 1; 
     fi
 
