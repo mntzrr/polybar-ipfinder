@@ -69,7 +69,7 @@ while :; do
 
     status=$VPN_DOWN
     # If a VPN connection is established, a tunnel is created.
-    if ip tuntap | grep -iEq '(tun[0-9]+|nordlynx)'; then
+    if ip tuntap | grep -iEq '(tun[0-9]+|nordlynx)' || ip link | grep -iEq 'mullvad'; then
         status=$VPN_UP
     fi
 
@@ -97,7 +97,7 @@ while :; do
         fi
     fi
 
-    printf "%-26s\n" "$(echo $status $ip [$country])"
+    printf "%-23s\n" "$(echo $status $ip [$country])"
     previous_interface_state="$(interface_state)"
     previous_uplinks=$(uplinks)
     previous_connection_status=$(connected)
