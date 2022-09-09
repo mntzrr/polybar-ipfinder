@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Sometimes, when there is no Internet connection, curl will continue to retry. If the total time is longer than MAX_TIME we want to abort.
 MAX_TIME=10 # seconds
@@ -69,7 +69,7 @@ while :; do
 
     status=$VPN_DOWN
     # If a VPN connection is established, a tunnel is created.
-    if ip tuntap | grep -iEq '(tun[0-9]+|nordlynx|)' || ip link | grep -iEq '(mullvad|wgpia[0-9]+)'; then
+    if ip tuntap | grep -iEq '(proton|tun)[0-9]+|nordlynx' || ip link | grep -iEq 'mullvad|wgpia[0-9]+'; then
         status=$VPN_UP
     fi
 
