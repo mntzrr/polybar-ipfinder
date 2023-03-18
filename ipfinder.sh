@@ -16,9 +16,9 @@ INTERNET_DOWN=""
 
 # In case we get throttled anyway, try with a different service.
 throttled() {
-    response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" ifconfig.co/json)
-    ip=$(echo "$response" | jq -r '.ip' 2>/dev/null)
-    country=$(echo "$response" | jq -r '.country_iso' 2>/dev/null)
+    response=$(curl -m "$MAX_TIME" -sf -H "Accept: application/json" trackip.net/ip?json)
+    ip=$(echo "$response" | jq -r '.IP' 2>/dev/null)
+    country=$(echo "$response" | jq -r '.Country' 2>/dev/null)
 
     if  [ -z "$ip" ] || echo "$ip" | grep -iq null; then
         return 1
